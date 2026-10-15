@@ -393,7 +393,7 @@ PAN = {"A": (875, 1815, 697, 700, TEAL), "B": (1607, 1815, 697, 700, BERRY),
        "C": (875, 2550, 697, 700, AMBER), "D": (1607, 2550, 697, 700, FOREST), "E": (875, 3285, 1429, 740, TEAL)}
 ptitle_locs = {"A": "LB8BZKKfdKtRm6Bw", "B": "LBbs8DqlzkpTlgCz", "C": "LBjKqb02cDjcMFb2",
                "D": "LBR77fdY4sXT8Jmv", "E": "LB1t7BPTMf8YYrmn"}
-ptitles = {"A": "UV-Vis", "B": "XRD", "C": "FTIR", "D": "SEM dan EDX", "E": "DLS"}
+ptitles = {"A": "UV-Vis", "B": "XRD", "C": "FTIR", "D": "SEM dan EDX", "E": "Distribusi Ukuran Partikel (SEM dan DLS)"}
 for k, (px, py, pw, ph, colr) in PAN.items():
     rrect(px, py, pw, ph, 24, WHITE, "#CBE6CE", 3)
     rrect(px + 3, py + 3, pw - 6, 108, 22, "#F6FAF6")
@@ -530,7 +530,7 @@ px, py, pw, ph, _ = PAN["D"]
 rrect(px + 24, py + 122, 315, 250, 10, "#3B4240")
 rrect(px + 358, py + 122, 315, 250, 10, "#3B4240")
 img("MAHYDXRDzWQ", px + 40, py + 122, 283, 250, "Citra SEM nanopartikel ZnO (skala 10 µm)")
-img("MAHYDfoDKVs", px + 376, py + 122, 281, 250, "Citra SEM nanopartikel ZnO (skala 1 µm)")
+img("MAHYDuac98M", px + 359, py + 122, 313, 250, "Citra SEM HD nanopartikel ZnO perbesaran 15.000x (skala 1 µm)")
 edx = [(0.525, 0.36, "O Kα"), (1.012, 1.0, "Zn Lα"), (1.74, 0.07, None), (8.63, 0.17, "Zn Kα"), (9.57, 0.05, None)]
 for i, (colr, tag) in enumerate([(RED, "Spc_001"), (BLUE, "Spc_002")]):
     ex = px + 24 + i * 334
@@ -560,38 +560,64 @@ for i, (colr, tag) in enumerate([(RED, "Spc_001"), (BLUE, "Spc_002")]):
     text(X0, T + PH + 34, PW, "Energi (keV)", 19, AXIS, bold=True, align="center", lh=1.15)
 caption(px, py, "Gambar 4. Citra SEM dan spektrum EDX nanopartikel ZnO.")
 
-# ---- E: DLS
+# ---- E: particle size (SEM histogram + DLS)
 px, py, pw, ph, _ = PAN["E"]
-X0, T, PW, PH = px + 140, py + 175, 640, 370
-fx = lambda d: X0 + (math.log10(d) + 1) / 5 * PW
-fy = lambda v: T + PH - v / 30 * PH
-text(X0, py + 122, PW, "Size Distribution by Intensity", 28, FOREST_D, bold=True, align="center", lh=1.2)
-segs([[(fx(d), T), (fx(d), T + PH)] for d in (1, 10, 100, 1000, 10000)], GRID, 2)
-ticks_y(X0, T, PW, PH, [0, 5, 10, 15, 20, 25, 30], fy, ["0", "5", "10", "15", "20", "25", "30"])
+T, PH = py + 178, 310
+# (a) SEM particle-size histogram, lognormal fit (Origin: y0, xc, w, A)
+X0, PW = px + 128, 400
+fx = lambda d: X0 + (d - 60) / 160 * PW
+fy = lambda v: T + PH - v / 25 * PH
+text(px + 24, py + 126, 520, "(a) Histogram Ukuran Partikel (SEM)", 26, FOREST_D, bold=True, align="center", lh=1.2)
+ticks_y(X0, T, PW, PH, [0, 5, 10, 15, 20, 25], fy, ["0", "5", "10", "15", "20", "25"])
+for i, n in enumerate((6, 10, 17, 18, 16, 12, 8, 8, 4, 1)):
+    d0 = 60 + 15 * i
+    rrect(fx(d0 + 1.2), fy(n), fx(d0 + 13.8) - fx(d0 + 1.2), fy(0) - fy(n), 3, TEAL_L, TEAL_D, 2.5)
 axes(X0, T, PW, PH)
-ticks_x(T, PH, [0.1, 1, 10, 100, 1000, 10000], fx, ["0,1", "1", "10", "100", "1000", "10000"])
-minor = [m * 10 ** e for e in range(-1, 4) for m in range(2, 10)]
+ticks_x(T, PH, [60, 100, 140, 180, 220], fx, ["60", "100", "140", "180", "220"])
+y0, xc, wl, A = -2.36273, 123.85601, 0.34345, 2003.05891
+lgn = lambda d: y0 + A / (math.sqrt(2 * math.pi) * wl * d) * math.exp(-math.log(d / xc) ** 2 / (2 * wl * wl))
+segs([[(fx(d), fy(max(lgn(d), 0))) for d in range(60, 221, 4)]], RED, 4)
+rrect(X0 + PW - 214, T + 6, 208, 92, 8, WHITE, GRID, 2)
+rrect(X0 + PW - 200, T + 20, 34, 22, 3, TEAL_L, TEAL_D, 2)
+text(X0 + PW - 156, T + 15, 150, "ZnO (n = 100)", 19, AXIS, lh=1.2)
+segs([[(X0 + PW - 200, T + 72), (X0 + PW - 166, T + 72)]], RED, 4)
+text(X0 + PW - 156, T + 58, 150, "Fit lognormal", 19, AXIS, lh=1.2)
+text(X0, T + PH + 52, PW, "Diameter Partikel (nm)", 24, AXIS, bold=True, align="center", lh=1.2)
+rtext(px + 34, T + PH / 2, 200, "Jumlah", 24, AXIS, bold=True)
+rrect(X0 + 10, T + PH + 100, PW - 20, 50, 25, TEAL_T)
+text(X0 + 10, T + PH + 110, PW - 20, "xc = 123,86 ± 4,66 nm  ·  R² = 0,971", 22, TEAL_D, bold=True, align="center", lh=1.2)
+
+# (b) DLS size distribution by intensity
+X0, PW = px + 660, 380
+fx = lambda d: X0 + math.log10(d) / 4 * PW
+fy = lambda v: T + PH - v / 40 * PH
+text(px + 560, py + 126, 520, "(b) Distribusi Intensitas (DLS)", 26, FOREST_D, bold=True, align="center", lh=1.2)
+segs([[(fx(d), T), (fx(d), T + PH)] for d in (10, 100, 1000, 10000)], GRID, 2)
+ticks_y(X0, T, PW, PH, [0, 10, 20, 30, 40], fy, ["0", "10", "20", "30", "40"])
+axes(X0, T, PW, PH)
+ticks_x(T, PH, [1, 10, 100, 1000, 10000], fx, ["1", "10", "100", "1000", "10000"], size=22)
+minor = [m * 10 ** e for e in range(0, 4) for m in range(2, 10)]
 segs([[(fx(d), T + PH), (fx(d), T + PH + 5)] for d in minor], AXIS, 1.5)
-mu, sg = math.log10(780), 0.105
-pts = [(fx(d), fy(24.0 * math.exp(-((math.log10(d) - mu) / sg) ** 2 / 2))) for d in [10 ** (-1 + i * 0.02) for i in range(251)]]
-pts = [p for j, p in enumerate(pts) if j in (0, len(pts) - 1) or abs(p[1] - fy(0)) > 0.5 or abs(pts[j - 1][1] - fy(0)) > 0.5 or abs(pts[j + 1][1] - fy(0)) > 0.5]
-segs([pts], RED, 4)
-text(X0, T + PH + 52, PW, "Size (d.nm)", 26, AXIS, bold=True, align="center", lh=1.2)
-rtext(px + 36, T + PH / 2, 300, "Intensity (Percent)", 26, AXIS, bold=True)
-segs([[(X0 + 90, T + PH + 112), (X0 + 140, T + PH + 112)]], RED, 4)
-text(X0 + 150, T + PH + 96, 480, "Record 46: 0804_Tria Prayoga_ZnO NP 1", 22, AXIS, lh=1.2)
-TX, TY, TW = px + 840, py + 172, 560
-text(TX, py + 122, TW, "Cumulant Results (n = 3)", 30, TEAL, bold=True, lh=1.2)
-rrect(TX, TY, TW, 4 * 62, 14, WHITE, TEAL_L, 3)
-for i, (a, b) in enumerate([("Z-average (nm)", "876,5 ± 83,3"), ("PDI", "0,334 ± 0,138"), ("Pd (nm)", "525,6"), ("%Pd", "64,2")]):
+segs([[(fx(1), fy(0)), (fx(415), fy(0)), (fx(568), fy(34.8)), (fx(640), fy(32.4)), (fx(865), fy(0)), (fx(10000), fy(0))]], RED, 4)
+text(fx(568) - 150, fy(34.8) - 34, 140, "~568 nm", 20, RED, bold=True, align="end", lh=1.2)
+text(X0, T + PH + 52, PW, "Size (d.nm)", 24, AXIS, bold=True, align="center", lh=1.2)
+rtext(px + 572, T + PH / 2, 300, "Intensity (Percent)", 24, AXIS, bold=True)
+segs([[(X0 - 10, T + PH + 127), (X0 + 30, T + PH + 127)]], RED, 4)
+text(X0 + 38, T + PH + 112, 400, "Record 46: 0804_Tria Prayoga_ZnO NP 1", 19, AXIS, lh=1.2)
+
+# (c) cumulant results
+TX, TW = px + 1080, 326
+text(TX, py + 126, TW, "Cumulant Results (n = 3)", 26, TEAL, bold=True, lh=1.2)
+TY = py + 180
+rrect(TX, TY, TW, 4 * 76, 14, WHITE, TEAL_L, 3)
+for i, (a_, b_) in enumerate([("Z-average (nm)", "876,5 ± 83,3"), ("PDI", "0,334 ± 0,138"), ("Pd (nm)", "525,6"), ("%Pd", "64,2")]):
     if i % 2 == 0:
-        rrect(TX + 3, TY + 3 + i * 62, TW - 6, 56 + (3 if i == 0 else 0), 10, TEAL_T)
-    text(TX + 22, TY + 14 + i * 62, 300, a, 27, TXT, lh=1.2)
-    text(TX + 250, TY + 14 + i * 62, 290, b, 27, TEAL_D, bold=True, align="end", lh=1.2)
-segs([[(TX + 240, TY + 8), (TX + 240, TY + 4 * 62 - 8)]], TEAL_L, 2)
-text(TX, TY + 4 * 62 + 28, TW, "Keterangan:", 26, TEAL_D, bold=True, lh=1.2)
-text(TX, TY + 4 * 62 + 66, TW, "Grafik menunjukkan distribusi ukuran partikel berdasarkan intensitas (representatif). Nilai merupakan rata-rata tiga kali pengukuran (n = 3).", 24, MUTED, lh=1.35)
-caption(px, py, "Gambar 5. Distribusi ukuran partikel berdasarkan intensitas (DLS).", dy=672, w=1381)
+        rrect(TX + 3, TY + 3 + i * 76, TW - 6, 70 + (3 if i == 0 else 0), 10, TEAL_T)
+    text(TX + 20, TY + 10 + i * 76, 160, a_, 22, MUTED, lh=1.2)
+    text(TX + 20, TY + 36 + i * 76, TW - 40, b_, 28, TEAL_D, bold=True, align="end", lh=1.15)
+text(TX, TY + 4 * 76 + 24, TW, "Keterangan:", 23, TEAL_D, bold=True, lh=1.2)
+text(TX, TY + 4 * 76 + 58, TW, "Ukuran DLS > SEM: indikasi aglomerasi partikel dalam medium dispersi.", 21, MUTED, lh=1.35)
+caption(px, py, "Gambar 5. (a) Histogram ukuran partikel dari citra SEM dengan fit lognormal; (b) distribusi ukuran berdasarkan intensitas (DLS) dan hasil kumulan.", dy=654, w=1381)
 
 cur = shapes
 # ================================================================== RIGHT COLUMN
@@ -675,6 +701,13 @@ for i, (s, ic) in enumerate((("Sintesis hijau ZnO berhasil menggunakan ekstrak a
     icon(x0 + 112, 4243, 160, ic, WHITE, fg=FOREST)
     re(cnum_locs[i], str(i + 1), x0, 4300, 92, 48, WHITE, True, "center", 1.0)
     re(ctext_locs[i], s, x0 + 295, 4252, 600, 38, WHITE, True, "start", 1.25)
+
+# ================================================================== HEADER LOGOS (white boxes)
+cur = shapes
+rrect(130, 36, 300, 300, 34, WHITE, LIME_SOFT, 4)
+img("MAHYDp02aL8", 155, 60, 250, 252, "Logo Universitas Pancasila")
+rrect(2749, 36, 300, 300, 34, WHITE, LIME_SOFT, 4)
+img("MAHYDp3ry3k", 2781, 61, 236, 250, "Logo STIKes IKIFA")
 
 for L in reuse_locs:
     reuse.append({"type": "layer_element", "locator_id": L, "position": "front"})
