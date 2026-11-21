@@ -102,7 +102,7 @@ bg[int(LIGHT_END * S):] = vgrad([(0, "#03182b"), (0.2, "#0f2244"), (1, "#0c1e46"
 photo = Image.open(os.path.join(UP, "7915f7e7-image.jpg")).convert("RGB")     # 1200x697
 HX, HY, HW = 880, 0, 1000                       # poster px: left, top, width of the full photo
 HH = HW * photo.height / photo.width
-FL, FR, FT, FB = 200, 150, 95, 175              # feather widths (poster px)
+FL, FR, FT, FB = 240, 170, 120, 210             # feather widths (poster px)
 x0, y0 = int(HX * S), int(HY * S)
 pw, phh = int(HW * S), int(HH * S)
 ph = photo.resize((pw, phh), Image.LANCZOS)
@@ -112,10 +112,10 @@ p = np.asarray(ph).astype(np.float32)
 # cool tint so it matches the navy palette while keeping the real colours readable
 lum = (0.299 * p[..., 0] + 0.587 * p[..., 1] + 0.114 * p[..., 2])[..., None] / 255
 duo = hexrgb("#0a1a3d") * (1 - lum) + hexrgb("#b8cdef") * lum
-p = p * 0.62 + duo * 0.38
-p = p * 0.85 + hexrgb("#0a1a3d") * 0.15
+p = p * 0.5 + duo * 0.5
+p = p * 0.62 + hexrgb("#0a1a3d") * 0.38              # subtle: pushed well into the navy
 # deepen the pale sky toward navy (strongest at the top) so the edges disappear into the background
-sky = (0.55 * (1 - np.clip(np.arange(phh) / (phh * 0.5), 0, 1)) ** 1.4)[:, None, None]
+sky = (0.65 * (1 - np.clip(np.arange(phh) / (phh * 0.5), 0, 1)) ** 1.4)[:, None, None]
 p = p * (1 - sky) + hexrgb("#0c1f4a") * sky
 
 
@@ -128,15 +128,15 @@ px = np.arange(pw) / S
 py = np.arange(phh) / S
 mx = ss(px / FL) * ss((HW - px) / FR)
 my = ss(py / FT) * ss((HH - py) / FB)
-alpha = (my[:, None] * mx[None, :]) * 0.94
+alpha = (my[:, None] * mx[None, :]) * 0.8
 # soft blue glow behind the photo so the feathered edges melt into the navy
-radial(bg[:int(HERO_END * S)], HX + HW / 2, HY + HH * 0.45, 760, "#1d3a78", 0.55)
+radial(bg[:int(HERO_END * S)], HX + HW / 2, HY + HH * 0.45, 760, "#1a3370", 0.45)
 reg = bg[y0:y0 + phh, x0:x0 + pw]
 reg[:] = reg * (1 - alpha[..., None]) + p * alpha[..., None]
 
 bg_img = Image.fromarray(np.clip(bg, 0, 255).astype(np.uint8))
 bg_img = bg_img.filter(ImageFilter.GaussianBlur(0.4))
-bg_img.save(os.path.join(OUT, "bg_mixogers_v2.jpg"), quality=90)
+bg_img.save(os.path.join(OUT, "bg_mixogers_v3.jpg"), quality=90)
 
 # ---------------------------------------------------------------- modes graphic (attached image 2)
 m = Image.open(os.path.join(UP, "9ec377b7-image.jpg")).convert("RGB")
