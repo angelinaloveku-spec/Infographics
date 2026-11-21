@@ -97,26 +97,22 @@ bg[int((GREEN_END + 3) * S): int(LIGHT_END * S)] = vgrad(
 bg[int(LIGHT_END * S):] = vgrad([(0, "#03182b"), (0.2, "#0f2244"), (1, "#0c1e46")], LIGHT_END, PH, BW)
 
 # ---------------------------------------------------------------- hero photo
-# The whole photo sits between the BOOSTER 2.1 title and the team illustration, feathered on every
-# side into the navy so it reads as part of the background.
-photo = Image.open(os.path.join(UP, "7915f7e7-image.jpg")).convert("RGB")     # 1200x697
+# The whole refinery photo, with the sky cut out (scripts/mixogers_cut_sky.py -> refinery_cutout.png),
+# sits between the BOOSTER 2.1 title and the team illustration. Its side and bottom edges fade into
+# the navy; the steam stays as translucent smoke.
+cut = Image.open(os.path.join(OUT, "refinery_cutout.png")).convert("RGBA")     # 1200x673, sky transparent
 HX, HY, HW = 880, 0, 1000                       # poster px: left, top, width of the full photo
-HH = HW * photo.height / photo.width
-FL, FR, FT, FB = 240, 170, 120, 210             # feather widths (poster px)
+HH = HW * cut.height / cut.width
+FL, FR, FB = 200, 150, 200                      # feather widths (poster px)
 x0, y0 = int(HX * S), int(HY * S)
 pw, phh = int(HW * S), int(HH * S)
-ph = photo.resize((pw, phh), Image.LANCZOS)
-ph = ImageEnhance.Contrast(ph).enhance(1.08)
-ph = ImageEnhance.Color(ph).enhance(0.8)
-p = np.asarray(ph).astype(np.float32)
-# cool tint so it matches the navy palette while keeping the real colours readable
+arr = np.asarray(cut.resize((pw, phh), Image.LANCZOS)).astype(np.float32)
+p, ca = arr[..., :3], arr[..., 3] / 255
+# cool tint so the metal sits in the navy palette while keeping its real colours
 lum = (0.299 * p[..., 0] + 0.587 * p[..., 1] + 0.114 * p[..., 2])[..., None] / 255
 duo = hexrgb("#0a1a3d") * (1 - lum) + hexrgb("#b8cdef") * lum
-p = p * 0.5 + duo * 0.5
-p = p * 0.62 + hexrgb("#0a1a3d") * 0.38              # subtle: pushed well into the navy
-# deepen the pale sky toward navy (strongest at the top) so the edges disappear into the background
-sky = (0.65 * (1 - np.clip(np.arange(phh) / (phh * 0.5), 0, 1)) ** 1.4)[:, None, None]
-p = p * (1 - sky) + hexrgb("#0c1f4a") * sky
+p = p * 0.6 + duo * 0.4
+p = p * 0.78 + hexrgb("#0a1a3d") * 0.22
 
 
 def ss(t):
@@ -127,16 +123,16 @@ def ss(t):
 px = np.arange(pw) / S
 py = np.arange(phh) / S
 mx = ss(px / FL) * ss((HW - px) / FR)
-my = ss(py / FT) * ss((HH - py) / FB)
-alpha = (my[:, None] * mx[None, :]) * 0.8
-# soft blue glow behind the photo so the feathered edges melt into the navy
-radial(bg[:int(HERO_END * S)], HX + HW / 2, HY + HH * 0.45, 760, "#1a3370", 0.45)
+my = ss((HH - py) / FB)
+alpha = ca * (my[:, None] * mx[None, :]) * 0.95
+# soft blue glow behind the refinery so it sits in the scene rather than on flat navy
+radial(bg[:int(HERO_END * S)], HX + HW / 2, HY + HH * 0.55, 760, "#1a3370", 0.45)
 reg = bg[y0:y0 + phh, x0:x0 + pw]
 reg[:] = reg * (1 - alpha[..., None]) + p * alpha[..., None]
 
 bg_img = Image.fromarray(np.clip(bg, 0, 255).astype(np.uint8))
 bg_img = bg_img.filter(ImageFilter.GaussianBlur(0.4))
-bg_img.save(os.path.join(OUT, "bg_mixogers_v3.jpg"), quality=90)
+bg_img.save(os.path.join(OUT, "bg_mixogers_v4.jpg"), quality=90)
 
 # ---------------------------------------------------------------- modes graphic (attached image 2)
 m = Image.open(os.path.join(UP, "9ec377b7-image.jpg")).convert("RGB")
