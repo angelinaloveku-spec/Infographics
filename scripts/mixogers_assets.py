@@ -97,38 +97,46 @@ bg[int((GREEN_END + 3) * S): int(LIGHT_END * S)] = vgrad(
 bg[int(LIGHT_END * S):] = vgrad([(0, "#03182b"), (0.2, "#0f2244"), (1, "#0c1e46")], LIGHT_END, PH, BW)
 
 # ---------------------------------------------------------------- hero photo
+# The whole photo sits between the BOOSTER 2.1 title and the team illustration, feathered on every
+# side into the navy so it reads as part of the background.
 photo = Image.open(os.path.join(UP, "7915f7e7-image.jpg")).convert("RGB")     # 1200x697
-scale = BW * 1.15 / photo.width
-ph = photo.resize((int(photo.width * scale), int(photo.height * scale)), Image.LANCZOS)
-top = int(14 * scale)
-hero_h = int(HERO_END * S)
-ph = ph.crop((0, top, BW, top + hero_h))
-ph = ImageEnhance.Contrast(ph).enhance(1.12)
-ph = ImageEnhance.Color(ph).enhance(0.75)
+HX, HY, HW = 880, 0, 1000                       # poster px: left, top, width of the full photo
+HH = HW * photo.height / photo.width
+FL, FR, FT, FB = 200, 150, 95, 175              # feather widths (poster px)
+x0, y0 = int(HX * S), int(HY * S)
+pw, phh = int(HW * S), int(HH * S)
+ph = photo.resize((pw, phh), Image.LANCZOS)
+ph = ImageEnhance.Contrast(ph).enhance(1.08)
+ph = ImageEnhance.Color(ph).enhance(0.8)
 p = np.asarray(ph).astype(np.float32)
-# cool blue duotone blended with the real colours
+# cool tint so it matches the navy palette while keeping the real colours readable
 lum = (0.299 * p[..., 0] + 0.587 * p[..., 1] + 0.114 * p[..., 2])[..., None] / 255
-duo = hexrgb("#061433") * (1 - lum) + hexrgb("#9fc0f0") * lum
-p = p * 0.5 + duo * 0.5
-# darken: strong on the left (title area), lighter on the right
-xx = np.linspace(0, 1, BW)[None, :]
-t = np.clip((0.66 - xx) / 0.46, 0, 1)
-left = t * t * (3 - 2 * t)                              # smoothstep, no visible kink
-a = 0.42 + 0.46 * left                                  # 0.88 on left .. 0.42 on right
-yv = np.linspace(0, HERO_END, hero_h)[:, None]
-navy = hexrgb("#0a1a3d")
-p = p * (1 - a[..., None]) + navy * a[..., None]
-# top vignette under the white logo plates
-tv = np.clip(1 - yv / 160, 0, 1) * 0.25
-p = p * (1 - tv[..., None]) + navy * tv[..., None]
-# fade into the navy body underneath (blend toward the real body pixels, so no seam)
-f = np.clip((yv - 500) / 300, 0, 1)
-f = f * f * (3 - 2 * f)
-bg[:hero_h] = p * (1 - f[..., None]) + bg[:hero_h] * f[..., None]
+duo = hexrgb("#0a1a3d") * (1 - lum) + hexrgb("#b8cdef") * lum
+p = p * 0.62 + duo * 0.38
+p = p * 0.85 + hexrgb("#0a1a3d") * 0.15
+# deepen the pale sky toward navy (strongest at the top) so the edges disappear into the background
+sky = (0.55 * (1 - np.clip(np.arange(phh) / (phh * 0.5), 0, 1)) ** 1.4)[:, None, None]
+p = p * (1 - sky) + hexrgb("#0c1f4a") * sky
+
+
+def ss(t):
+    t = np.clip(t, 0, 1)
+    return t * t * (3 - 2 * t)
+
+
+px = np.arange(pw) / S
+py = np.arange(phh) / S
+mx = ss(px / FL) * ss((HW - px) / FR)
+my = ss(py / FT) * ss((HH - py) / FB)
+alpha = (my[:, None] * mx[None, :]) * 0.94
+# soft blue glow behind the photo so the feathered edges melt into the navy
+radial(bg[:int(HERO_END * S)], HX + HW / 2, HY + HH * 0.45, 760, "#1d3a78", 0.55)
+reg = bg[y0:y0 + phh, x0:x0 + pw]
+reg[:] = reg * (1 - alpha[..., None]) + p * alpha[..., None]
 
 bg_img = Image.fromarray(np.clip(bg, 0, 255).astype(np.uint8))
 bg_img = bg_img.filter(ImageFilter.GaussianBlur(0.4))
-bg_img.save(os.path.join(OUT, "bg_mixogers.jpg"), quality=90)
+bg_img.save(os.path.join(OUT, "bg_mixogers_v2.jpg"), quality=90)
 
 # ---------------------------------------------------------------- modes graphic (attached image 2)
 m = Image.open(os.path.join(UP, "9ec377b7-image.jpg")).convert("RGB")
